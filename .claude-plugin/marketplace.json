@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "go-guidelines",
-      "description": "Enhances code agents with Go best practices covering performance, modern syntax, patterns, testing, error handling, and operational guidelines.",
+      "description": "Enhances code agents with Go best practices covering performance, modern syntax, generics, patterns, testing, error handling, and concurrency.",
       "author": {
         "name": "Mehmet Sezer",
         "email": "m.szr98@gmail.com"
