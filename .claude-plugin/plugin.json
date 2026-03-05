@@ -1,0 +1,9 @@
+{
+  "name": "go-guidelines",
+  "description": "Enhances code agents with Go best practices covering performance, modern syntax, patterns, testing, error handling, and operational guidelines.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Mehmet Sezer"
+  },
+  "keywords": ["go", "golang", "go-best-practices", "guidelines", "performance", "testing", "error-handling"]
+}
