@@ -1,0 +1,22 @@
+{
+  "name": "go-guidelines-marketplace",
+  "owner": {
+    "name": "Mehmet Sezer",
+    "email": "m.szr98@gmail.com"
+  },
+  "metadata": {
+    "description": "Marketplace for Go guidelines Claude Code plugin",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "go-guidelines",
+      "description": "Enhances code agents with Go best practices covering performance, modern syntax, patterns, testing, error handling, and operational guidelines.",
+      "author": {
+        "name": "Mehmet Sezer",
+        "email": "m.szr98@gmail.com"
+      },
+      "source": "."
+    }
+  ]
+}
