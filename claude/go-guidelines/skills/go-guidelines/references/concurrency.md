@@ -150,6 +150,56 @@ func process() error {
 }
 ```
 
+### Scenario 1b: Fan-Out with Early Return
+
+Multiple goroutines send results, but the consumer returns early on error. Unbuffered channel leaves remaining senders blocked forever.
+
+Bad:
+```go
+func processAll(ids []int) ([]int, error) {
+    ch := make(chan result) // unbuffered
+    for _, id := range ids {
+        go func() {
+            val, err := process(id)
+            ch <- result{val, err} // blocks if consumer returned early
+        }()
+    }
+    var results []int
+    for range len(ids) {
+        r := <-ch
+        if r.err != nil {
+            return nil, r.err // remaining goroutines stuck on ch <- forever
+        }
+        results = append(results, r.value)
+    }
+    return results, nil
+}
+```
+
+Good — buffer capacity matches goroutine count:
+```go
+func processAll(ids []int) ([]int, error) {
+    ch := make(chan result, len(ids)) // buffered: senders never block
+    for _, id := range ids {
+        go func() {
+            val, err := process(id)
+            ch <- result{val, err} // writes to buffer, goroutine exits
+        }()
+    }
+    var results []int
+    for range len(ids) {
+        r := <-ch
+        if r.err != nil {
+            return nil, r.err // remaining goroutines write to buffer and exit
+        }
+        results = append(results, r.value)
+    }
+    return results, nil
+}
+```
+
+Rule: When spawning N goroutines that all send to the same channel, use `make(chan T, N)` if the consumer might exit early.
+
 ### Scenario 2: Missing Channel Close with Range
 
 `for range ch` blocks forever if the channel is never closed.
@@ -627,3 +677,13 @@ go func() {
 ## Detection
 
 Use [goleak](https://github.com/uber-go/goleak) in tests — see [testing reference](testing.md) for setup.
+
+### Goroutine Leak Profile (Go 1.26+, Experimental)
+
+Build with `GOEXPERIMENT=goroutineleakprofile` to enable the `goroutineleak` pprof profile. It uses the GC's marking phase to detect goroutines blocked on unreachable sync primitives (channels, mutexes, conds).
+
+```bash
+GOEXPERIMENT=goroutineleakprofile go test -v ./...
+```
+
+Also available as `/debug/pprof/goroutineleak` for runtime detection in staging environments. See [testing reference](testing.md) for test usage.

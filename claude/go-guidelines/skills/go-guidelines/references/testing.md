@@ -338,6 +338,44 @@ go test -bench=. -count=10 | tee bench.txt
 benchstat bench.txt
 ```
 
+## T.ArtifactDir (Go 1.26+)
+
+`T.ArtifactDir()` provides a dedicated directory for test output files (logs, reports, screenshots). Files persist when using the `-artifacts` flag.
+
+```go
+func TestReport(t *testing.T) {
+    dir := t.ArtifactDir()
+    report := []byte(`{"total": 1000, "indexed": 998, "failed": 2}`)
+    if err := os.WriteFile(filepath.Join(dir, "report.json"), report, 0644); err != nil {
+        t.Fatal(err)
+    }
+}
+```
+
+Run with artifacts:
+```bash
+go test -v -artifacts -outputdir=/tmp/test-output ./...
+```
+
+Without `-artifacts`: uses a temp directory that is cleaned up after the test. Each subtest gets its own artifact directory.
+
+## Goroutine Leak Profile (Go 1.26+, Experimental)
+
+A new `goroutineleak` pprof profile detects goroutines blocked on unreachable sync primitives (channels, mutexes, conds). Enable with `GOEXPERIMENT=goroutineleakprofile`.
+
+```go
+func TestLeak(t *testing.T) {
+    prof := pprof.Lookup("goroutineleak")
+    if prof == nil {
+        t.Skip("build with GOEXPERIMENT=goroutineleakprofile")
+    }
+    // ... run code that may leak ...
+    prof.WriteTo(os.Stdout, 2)
+}
+```
+
+Also available as HTTP endpoint at `/debug/pprof/goroutineleak`.
+
 ## testing/synctest (Go 1.25+)
 
 Use `synctest.Test` for deterministic testing of concurrent code with virtualized time:

@@ -1,7 +1,7 @@
 {
   "name": "go-guidelines",
   "description": "Enhances code agents with Go best practices covering performance, modern syntax, generics, patterns, testing, error handling, and concurrency.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": {
     "name": "Mehmet Sezer"
   },

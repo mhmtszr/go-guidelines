@@ -302,7 +302,9 @@ Prefer `slices.Contains` (Go 1.21+) over writing your own.
 
 ## Self-Referential Constraints (Go 1.26+)
 
-Go 1.26 lifts the restriction that a generic type cannot refer to itself in its type parameter list:
+Go 1.26 lifts the restriction that a generic type cannot refer to itself in its type parameter list. Previously `type T[P T[P]]` was a compile error.
+
+### Adder Pattern
 
 ```go
 type Adder[A Adder[A]] interface {
@@ -317,15 +319,41 @@ func (v Vector2D) Add(other Vector2D) Vector2D {
     return Vector2D{X: v.X + other.X, Y: v.Y + other.Y}
 }
 
-// Vector2D satisfies Adder[Vector2D]
 func Sum[T Adder[T]](items []T) T {
-    var total T
-    for _, item := range items {
-        total = total.Add(item)
+    result := items[0]
+    for _, item := range items[1:] {
+        result = result.Add(item)
     }
-    return total
+    return result
 }
 ```
+
+### Ordered Pattern — Self-Sorting Collections
+
+```go
+type Ordered[T Ordered[T]] interface {
+    Less(T) bool
+}
+
+type SortedList[T Ordered[T]] struct {
+    items []T
+}
+
+func (sl *SortedList[T]) Add(item T) {
+    sl.items = append(sl.items, item)
+    slices.SortFunc(sl.items, func(a, b T) int {
+        if a.Less(b) {
+            return -1
+        }
+        if b.Less(a) {
+            return 1
+        }
+        return 0
+    })
+}
+```
+
+Any type implementing `Less(T) bool` automatically works with `SortedList`.
 
 ## Generic Type Instantiation
 
