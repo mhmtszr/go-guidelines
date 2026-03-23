@@ -246,6 +246,11 @@ wg.Wait()
 
 - `new(val)` — returns pointer to any value expression (`new(30)` -> `*int`, `new(true)` -> `*bool`)
 - `errors.AsType[T](err)` — generic, type-safe version of `errors.As`
+- `slog.NewMultiHandler` — fan-out logs to multiple handlers
+- `bytes.Buffer.Peek(n)` — read without advancing the buffer position
+- `reflect` iterator methods — `Type.Fields()`, `Type.Methods()`, `Type.Ins()`, `Type.Outs()`, `Value.Fields()`
+- `netip.Prefix.Compare` — compare and sort IP subnets
+- `go fix` — rewritten modernizer tool with 20+ fixers
 
 ### new(val)
 
@@ -266,6 +271,14 @@ cfg := Config{
 }
 ```
 
+Also works with function results and composite literals:
+```go
+person := Person{
+    Age: new(yearsSince(born)),
+}
+slicePtr := new([]int{1, 2, 3})
+```
+
 ### errors.AsType
 
 Before:
@@ -280,4 +293,83 @@ After:
 if pathErr, ok := errors.AsType[*os.PathError](err); ok {
     handle(pathErr)
 }
+```
+
+Multiple error types:
+```go
+if dnsErr, ok := errors.AsType[*net.DNSError](err); ok {
+    handleDNS(dnsErr)
+} else if appErr, ok := errors.AsType[*AppError](err); ok {
+    handleApp(appErr)
+}
+```
+
+### slog.NewMultiHandler
+
+Fan-out logs to multiple destinations without third-party libraries:
+
+```go
+stdoutHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+    Level: slog.LevelInfo,
+})
+fileHandler := slog.NewJSONHandler(logFile, &slog.HandlerOptions{
+    Level: slog.LevelWarn,
+})
+logger := slog.New(slog.NewMultiHandler(stdoutHandler, fileHandler))
+```
+
+Each handler retains its own level filter — an Info log reaches only the stdout handler, while Warn+ reaches both.
+
+### bytes.Buffer.Peek
+
+Read from a buffer without advancing the read position:
+
+```go
+buf := bytes.NewBufferString(`{"name":"Go"}`)
+header, _ := buf.Peek(1) // inspect first byte, position unchanged
+if header[0] == '{' {
+    // JSON content
+}
+```
+
+Useful for content-type detection, protocol parsing, and format sniffing before committing to a read path.
+
+### reflect Iterator Methods
+
+Before (Go 1.25):
+```go
+for i := range typ.NumField() {
+    field := typ.Field(i)
+}
+```
+After (Go 1.26):
+```go
+for field := range typ.Fields() {
+    fmt.Println(field.Name, field.Type)
+}
+```
+
+Available iterators: `Type.Fields()`, `Type.Methods()`, `Type.Ins()`, `Type.Outs()`, `Value.Fields()`, `Value.Methods()`.
+
+### go fix Modernizers
+
+`go fix` was rewritten using the `go vet` analysis framework with 20+ built-in modernizers:
+
+```bash
+go fix .              # apply all fixers
+go fix -diff .        # preview changes as diff
+go fix -forvar .      # run only a specific fixer
+```
+
+Example transformations:
+- Loop → `slices.Contains`
+- `sort.Slice` → `slices.SortFunc`
+- `if/else` → `min`/`max`
+- `HasPrefix` + `TrimPrefix` → `CutPrefix`
+- `errors.New(fmt.Sprintf(...))` → `fmt.Errorf(...)`
+
+Custom API migration with `//go:fix inline`:
+```go
+//go:fix inline
+func OldAPI(x int) int { return NewAPI(x, defaultOpts) }
 ```

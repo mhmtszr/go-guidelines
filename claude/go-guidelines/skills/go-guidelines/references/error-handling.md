@@ -55,11 +55,45 @@ func Open(file string) error {
     return &NotFoundError{File: file}
 }
 
-// caller
+// caller (Go < 1.26)
 var notFound *NotFoundError
 if errors.As(err, &notFound) {
     // handle
 }
+
+// caller (Go 1.26+) — prefer errors.AsType
+if notFound, ok := errors.AsType[*NotFoundError](err); ok {
+    // handle
+}
+```
+
+## errors.AsType (Go 1.26+)
+
+`errors.AsType[T]` is a generic, type-safe replacement for `errors.As`. It provides compile-time safety, better performance (~3x faster), and shorter syntax.
+
+Before:
+```go
+var appErr *AppError
+if errors.As(err, &appErr) {
+    handle(appErr)
+}
+```
+
+After:
+```go
+if appErr, ok := errors.AsType[*AppError](err); ok {
+    handle(appErr)
+}
+```
+
+Compile-time safety advantage: `errors.As` with a non-pointer target panics at runtime, while `errors.AsType` catches this at compile time:
+```go
+// errors.As — runtime panic if target is not a pointer:
+//   var bad AppError
+//   errors.As(err, &bad) → panic
+
+// errors.AsType — compile error:
+//   errors.AsType[AppError](err) → AppError does not satisfy error
 ```
 
 ## Error Wrapping
