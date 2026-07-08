@@ -73,6 +73,12 @@ cp -r claude/go-guidelines/skills/go-guidelines/ <your-project>/.cursor/skills/g
 /plugin install go-guidelines
 ```
 
+**OpenCode:**
+
+```
+cp -r claude/go-guidelines/skills/go-guidelines/ ~/.config/opencode/skills/go-guidelines/
+```
+
 ## Contributing
 
 PRs welcome. Add concise rules to `SKILL.md` or the relevant `references/*.md` file. Keep examples minimal and practical.
