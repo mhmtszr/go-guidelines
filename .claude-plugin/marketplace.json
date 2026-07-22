@@ -5,18 +5,19 @@
     "email": "m.szr98@gmail.com"
   },
   "metadata": {
-    "description": "Marketplace for Go guidelines Claude Code plugin",
-    "version": "1.0.2"
+    "description": "Marketplace for Go guidelines coding-agent plugin",
+    "version": "1.1.0"
   },
   "plugins": [
     {
       "name": "go-guidelines",
       "description": "Enhances code agents with Go best practices covering performance, modern syntax, generics, patterns, testing, error handling, and concurrency.",
+      "version": "1.1.0",
       "author": {
         "name": "Mehmet Sezer",
         "email": "m.szr98@gmail.com"
       },
-      "source": "./claude/go-guidelines"
+      "source": "./"
     }
   ]
 }

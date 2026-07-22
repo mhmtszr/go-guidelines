@@ -1,0 +1,43 @@
+{
+  "name": "go-guidelines",
+  "version": "1.1.0",
+  "description": "Production-grade Go best practices for coding agents: modern syntax, performance, concurrency, error handling, testing, and go fix for Go 1.26+.",
+  "author": {
+    "name": "Mehmet Sezer",
+    "email": "m.szr98@gmail.com",
+    "url": "https://github.com/mhmtszr"
+  },
+  "homepage": "https://github.com/mhmtszr/go-guidelines",
+  "repository": "https://github.com/mhmtszr/go-guidelines",
+  "license": "MIT",
+  "keywords": [
+    "go",
+    "golang",
+    "skills",
+    "best-practices",
+    "performance",
+    "testing",
+    "error-handling",
+    "concurrency"
+  ],
+  "skills": "./skills/",
+  "hooks": {},
+  "interface": {
+    "displayName": "Go Guidelines",
+    "shortDescription": "Modern, production-grade Go guidelines for coding agents",
+    "longDescription": "Teach coding agents to write version-aware, production-grade Go — modern syntax through Go 1.26, performance, concurrency safety, error handling, testing, and post-change go fix / lint / race verification.",
+    "developerName": "Mehmet Sezer",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Review this Go code against production best practices.",
+      "Write this Go feature using modern idioms for our go.mod version."
+    ],
+    "websiteURL": "https://github.com/mhmtszr/go-guidelines",
+    "brandColor": "#00ADD8"
+  }
+}

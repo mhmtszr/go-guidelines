@@ -353,13 +353,20 @@ Available iterators: `Type.Fields()`, `Type.Methods()`, `Type.Ins()`, `Type.Outs
 
 ### go fix Modernizers
 
-`go fix` was rewritten using the `go vet` analysis framework with 20+ built-in modernizers:
+Go 1.26 rewrote `go fix` on the `go vet` analysis framework with 20+ built-in modernizers ([blog](https://go.dev/blog/gofix)). **Always run it on Go 1.26+ projects after toolchain upgrades and after agent code changes.**
 
 ```bash
-go fix .              # apply all fixers
-go fix -diff .        # preview changes as diff
-go fix -forvar .      # run only a specific fixer
+go fix ./...          # apply all fixers
+go fix -diff ./...    # preview changes as diff
+go fix -forvar ./...  # run only a specific fixer
+go tool fix help      # list registered analyzers
 ```
+
+Guidance from the Go team:
+- Start from a clean git state so reviews contain only `go fix` edits
+- Run more than once until a fixed point (twice is usually enough) — one fix can unlock another
+- For multi-platform tags, re-run with different `GOOS`/`GOARCH`
+- Modernizers only apply in files whose effective Go version meets the feature minimum (`go` directive or `//go:build`)
 
 Example transformations:
 - Loop → `slices.Contains`
@@ -367,6 +374,7 @@ Example transformations:
 - `if/else` → `min`/`max`
 - `HasPrefix` + `TrimPrefix` → `CutPrefix`
 - `errors.New(fmt.Sprintf(...))` → `fmt.Errorf(...)`
+- `newInt`-style helpers → `new(expr)` (`-newexpr`)
 
 Custom API migration with `//go:fix inline`:
 ```go

@@ -1,8 +1,12 @@
-# Go Guidelines for Code Agents
+# Go Guidelines
 
-A plugin that teaches AI code agents how to write **production-grade Go** — covering modern syntax, generics, performance, concurrency safety, error handling, testing, and best practices.
+Make your AI code agent write **production-grade Go** instead of tutorial-grade Go.
 
-Drop it into Cursor or Claude Code and every Go file the agent touches gets better.
+A composable skill plugin for coding agents — covering modern syntax, generics, performance, concurrency safety, error handling, testing, and post-change verification including [`go fix`](https://go.dev/blog/gofix) on Go 1.26+.
+
+## Quickstart
+
+Install Go Guidelines for your agent: [Claude Code](#claude-code), [Codex App](#codex-app), [Codex CLI](#codex-cli), [Cursor](#cursor), [OpenCode](#opencode).
 
 ## Motivation
 
@@ -16,11 +20,82 @@ All coding agents tend to generate outdated and suboptimal Go. Key reasons:
 
 4. **Broken operational patterns.** Generated shutdown code closes the database before draining the HTTP server. Resources get leaked. Signals get ignored.
 
-5. **No post-change verification.** Agents never run `golangci-lint` or tests with the race detector after making changes.
+5. **No post-change verification.** Agents never run `golangci-lint`, `go fix` (Go 1.26+), or tests with the race detector after making changes.
 
 These guidelines fix all of the above by giving the agent an explicit, version-aware reference. The agent detects your Go version from `go.mod` and applies only the features and patterns available up to that version.
 
-This aligns with the Go team's direction. The [`modernize`](https://pkg.go.dev/golang.org/x/tools/gopls/internal/analysis/modernize) analyzer exists to update existing code to use newer idioms. These guidelines serve the same goal for *new* code: agents write modern Go from the start, so there's less to fix later.
+This aligns with the Go team's direction. The rewritten [`go fix`](https://go.dev/blog/gofix) command (Go 1.26+) modernizes existing code with analyzers for newer idioms. These guidelines serve the same goal for *new* code — and on Go 1.26+ they also require agents to run `go fix` after changes.
+
+## How it works
+
+1. Agent detects your Go version from `go.mod`.
+2. Loads only the reference files relevant to the task (modern syntax, concurrency, testing, …).
+3. Writes code using idioms available up to that version.
+4. After changes: lint (or `go vet`), `go test -race`, and on **Go 1.26+** also `go fix`.
+
+## Installation
+
+Installation differs by harness. If you use more than one, install Go Guidelines separately for each one.
+
+### Claude Code
+
+* Register the marketplace:
+
+```
+/plugin marketplace add mhmtszr/go-guidelines
+```
+
+* Install the plugin:
+
+```
+/plugin install go-guidelines@go-guidelines-marketplace
+```
+
+### Codex App
+
+* In the Codex app, open Plugins and add this repository as a plugin source, or install from a local checkout that includes `.codex-plugin/plugin.json`.
+* Or install from the repo for local development via the agents marketplace at `.agents/plugins/marketplace.json`.
+
+### Codex CLI
+
+* Open the plugin search interface:
+
+```
+/plugins
+```
+
+* Search for `go-guidelines`, or install from this repository (requires `.codex-plugin/plugin.json` at the repo root).
+
+### Cursor
+
+* In Cursor Agent chat, install from marketplace:
+
+```
+/add-plugin go-guidelines
+```
+
+* Or search for "go-guidelines" in the plugin marketplace.
+* Or install from this GitHub repository if the marketplace listing is not yet available.
+
+### OpenCode
+
+OpenCode uses its own plugin install; install Go Guidelines separately even if you already use it in another harness.
+
+* Tell OpenCode:
+
+```
+Fetch and follow instructions from https://raw.githubusercontent.com/mhmtszr/go-guidelines/refs/heads/master/.opencode/INSTALL.md
+```
+
+* Or add to `opencode.json`:
+
+```json
+{
+  "plugin": ["go-guidelines@git+https://github.com/mhmtszr/go-guidelines.git"]
+}
+```
+
+* Detailed docs: [docs/README.opencode.md](docs/README.opencode.md)
 
 ## What the Agent Learns
 
@@ -36,15 +111,15 @@ This aligns with the Go team's direction. The [`modernize`](https://pkg.go.dev/g
 | **Pitfalls** | Nil interface trap, variable shadowing, nil map panic, break in switch/select, copying sync types, time.After leak, init misuse, type embedding, trim confusion, string formatting deadlocks |
 | **Slices & Maps** | Backing array retention, append aliasing, 3-index slice, pointer-in-slice leak, maps never shrink, map pointer instability, nil slice behavior |
 | **Context** | Type-safe keys, WithoutCancel, AfterFunc, WithCancelCause, request-scoped propagation, timeout layering |
-| **Post-Change** | Automatically runs `golangci-lint` (or `go vet` fallback) and `go test -race` on changed packages |
+| **Post-Change** | Runs `golangci-lint` (or `go vet`), `go test -race`, and on Go 1.26+ also [`go fix`](https://go.dev/blog/gofix) |
 
 ## File Structure
 
 ```
-claude/go-guidelines/skills/go-guidelines/
+skills/go-guidelines/
 ├── SKILL.md                          # Entry point — version detection + reference routing
 └── references/
-    ├── modern-syntax.md              # Go version-specific syntax (1.0 → 1.26)
+    ├── modern-syntax.md              # Go version-specific syntax (1.0 → 1.26) + go fix
     ├── performance.md                # Struct layout, pre-allocation, sync.Pool, escape analysis
     ├── concurrency.md                # errgroup, goroutine leaks, select, false sharing
     ├── patterns.md                   # Naming, interfaces, shutdown, health checks, io.Reader
@@ -56,29 +131,23 @@ claude/go-guidelines/skills/go-guidelines/
     └── context-patterns.md           # Keys, WithoutCancel, AfterFunc, propagation
 ```
 
-Only `SKILL.md` is loaded on every invocation (~65 lines). Reference files are loaded on-demand based on the task, keeping context usage minimal.
-
-## Installation
-
-**Cursor** — copy into your project or `~/.cursor/skills/` for global use:
-
-```bash
-cp -r claude/go-guidelines/skills/go-guidelines/ <your-project>/.cursor/skills/go-guidelines/
-```
-
-**Claude Code:**
+Plugin manifests (Superpowers-style multi-harness layout):
 
 ```
-/plugin marketplace add mhmtszr/go-guidelines
-/plugin install go-guidelines
+.claude-plugin/     # Claude Code marketplace + plugin.json
+.cursor-plugin/     # Cursor plugin.json
+.codex-plugin/      # Codex plugin.json
+.agents/plugins/    # Codex/agents marketplace
+.opencode/          # OpenCode INSTALL.md + plugin JS
+package.json        # OpenCode package entry
 ```
 
-**OpenCode:**
-
-```
-cp -r claude/go-guidelines/skills/go-guidelines/ ~/.config/opencode/skills/go-guidelines/
-```
+Only `SKILL.md` is loaded on every invocation. Reference files are loaded on-demand based on the task, keeping context usage minimal.
 
 ## Contributing
 
 PRs welcome. Add concise rules to `SKILL.md` or the relevant `references/*.md` file. Keep examples minimal and practical.
+
+## License
+
+MIT License — see [LICENSE](LICENSE).

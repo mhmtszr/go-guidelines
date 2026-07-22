@@ -1,0 +1,20 @@
+{
+  "name": "go-guidelines-dev",
+  "interface": {
+    "displayName": "Go Guidelines Dev"
+  },
+  "plugins": [
+    {
+      "name": "go-guidelines",
+      "source": {
+        "source": "url",
+        "url": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

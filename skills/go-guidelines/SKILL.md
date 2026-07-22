@@ -53,8 +53,15 @@ which golangci-lint >/dev/null 2>&1 && golangci-lint run ./path/to/changed/packa
 go test ./path/to/changed/package/... -race
 ```
 
+**If the detected Go version is 1.26 or newer**, also run `go fix` on the changed packages ([Using go fix to modernize Go code](https://go.dev/blog/gofix)):
+
+```bash
+go fix ./path/to/changed/package/...
+```
+
 - Prefer `golangci-lint` when available, fall back to `go vet`
 - Always run tests with the race detector
+- On Go 1.26+, always run `go fix` after changes (use `go fix -diff` to preview; run twice if needed until a fixed point)
 - Fix all reported issues in the changed code before finishing
 - Do not fix pre-existing issues in unrelated code
 - If neither linter is available, skip silently and continue
