@@ -6,7 +6,7 @@ A composable skill plugin for coding agents — covering modern syntax, generics
 
 ## Quickstart
 
-Install Go Guidelines for your agent: [Claude Code](#claude-code), [Codex App](#codex-app), [Codex CLI](#codex-cli), [Cursor](#cursor), [OpenCode](#opencode).
+Install Go Guidelines for your agent: [Claude Code](#claude-code), [Codex CLI](#codex-cli), [Cursor](#cursor), [OpenCode](#opencode).
 
 ## Motivation
 
@@ -51,31 +51,31 @@ Installation differs by harness. If you use more than one, install Go Guidelines
 /plugin install go-guidelines@go-guidelines-marketplace
 ```
 
-### Codex App
-
-* In the Codex app, open Plugins and add this repository as a plugin source, or install from a local checkout that includes `.codex-plugin/plugin.json`.
-* Or install from the repo for local development via the agents marketplace at `.agents/plugins/marketplace.json`.
-
 ### Codex CLI
 
-* Open the plugin search interface:
+* Register this repository as a marketplace:
+
+```
+codex plugin marketplace add mhmtszr/go-guidelines
+```
+
+* Install the plugin (TUI):
 
 ```
 /plugins
 ```
 
-* Search for `go-guidelines`, or install from this repository (requires `.codex-plugin/plugin.json` at the repo root).
+Then select `go-guidelines` and install.
 
 ### Cursor
 
-* In Cursor Agent chat, install from marketplace:
+Install locally:
 
-```
-/add-plugin go-guidelines
+```bash
+git clone https://github.com/mhmtszr/go-guidelines.git ~/.cursor/plugins/local/go-guidelines
 ```
 
-* Or search for "go-guidelines" in the plugin marketplace.
-* Or install from this GitHub repository if the marketplace listing is not yet available.
+Then restart Cursor (or Developer: Reload Window). Update with `git -C ~/.cursor/plugins/local/go-guidelines pull`.
 
 ### OpenCode
 
@@ -136,8 +136,7 @@ Plugin manifests (Superpowers-style multi-harness layout):
 ```
 .claude-plugin/     # Claude Code marketplace + plugin.json
 .cursor-plugin/     # Cursor plugin.json
-.codex-plugin/      # Codex plugin.json
-.agents/plugins/    # Codex/agents marketplace
+.agents/plugins/    # Codex CLI marketplace
 .opencode/          # OpenCode INSTALL.md + plugin JS
 package.json        # OpenCode package entry
 ```
