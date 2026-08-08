@@ -1,7 +1,7 @@
 {
   "name": "go-guidelines",
   "displayName": "Go Guidelines",
-  "description": "Production-grade Go best practices: modern syntax, performance, concurrency, error handling, testing, and go fix for Go 1.26+",
+  "description": "Make your AI code agent write production-grade Go instead of tutorial-grade Go. A plugin for Cursor & Claude Code with version-aware guidelines (Go 1.0–1.26) covering modern syntax, performance tuning, error handling, concurrency patterns, testing, and graceful shutdown.",
   "version": "1.1.0",
   "author": {
     "name": "Mehmet Sezer",
