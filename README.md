@@ -6,7 +6,7 @@ A composable skill plugin for coding agents — covering modern syntax, generics
 
 ## Quickstart
 
-Install Go Guidelines for your agent: [Claude Code](#claude-code), [Codex CLI](#codex-cli), [Cursor](#cursor), [OpenCode](#opencode).
+Install Go Guidelines for your agent: [Claude Code](#claude-code), [Codex CLI](#codex-cli), [Cursor](#cursor), [OpenCode](#opencode), [Pi](#pi).
 
 ## Motivation
 
@@ -97,6 +97,22 @@ Fetch and follow instructions from https://raw.githubusercontent.com/mhmtszr/go-
 
 * Detailed docs: [docs/README.opencode.md](docs/README.opencode.md)
 
+### Pi
+
+Install Go Guidelines as a Pi package from this repository:
+
+```bash
+pi install git:github.com/mhmtszr/go-guidelines
+```
+
+For local development, run Pi with this checkout loaded as a temporary package:
+
+```bash
+pi -e /path/to/go-guidelines
+```
+
+The Pi package exposes the bundled `skills/` directory through Pi's native skill system. No compatibility skill tool or startup prompt injection is required.
+
 ## What the Agent Learns
 
 | | |
@@ -138,7 +154,8 @@ Plugin manifests (Superpowers-style multi-harness layout):
 .cursor-plugin/     # Cursor plugin.json
 .agents/plugins/    # Codex CLI marketplace
 .opencode/          # OpenCode INSTALL.md + plugin JS
-package.json        # OpenCode package entry
+.pi/                # Pi extension for native skill discovery
+package.json        # OpenCode entry + Pi package manifest
 ```
 
 Only `SKILL.md` is loaded on every invocation. Reference files are loaded on-demand based on the task, keeping context usage minimal.

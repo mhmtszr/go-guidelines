@@ -1,7 +1,7 @@
 {
   "name": "go-guidelines",
   "version": "1.1.0",
-  "description": "Go best practices skills plugin for coding agents (Cursor, Claude Code, Codex, OpenCode)",
+  "description": "Go best practices skills plugin for coding agents (Cursor, Claude Code, Codex, OpenCode, Pi)",
   "type": "module",
   "main": ".opencode/plugins/go-guidelines.js",
   "keywords": [
@@ -9,7 +9,8 @@
     "golang",
     "skills",
     "best-practices",
-    "opencode-plugin"
+    "opencode-plugin",
+    "pi-package"
   ],
   "license": "MIT",
   "repository": {
@@ -17,5 +18,16 @@
     "url": "git+https://github.com/mhmtszr/go-guidelines.git"
   },
   "homepage": "https://github.com/mhmtszr/go-guidelines",
-  "author": "Mehmet Sezer <m.szr98@gmail.com>"
+  "author": "Mehmet Sezer <m.szr98@gmail.com>",
+  "scripts": {
+    "test": "node --test tests/pi/*.test.mjs"
+  },
+  "pi": {
+    "extensions": [
+      "./.pi/extensions/go-guidelines.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  }
 }
