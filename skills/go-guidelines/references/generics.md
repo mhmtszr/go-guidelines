@@ -6,6 +6,7 @@
 - **Go 1.20+**: Comparable types fully satisfy `comparable` constraint
 - **Go 1.21+**: Built-in generic functions (`min`, `max`, `clear`), improved type inference
 - **Go 1.26+**: Self-referential type parameter constraints
+- **Go 1.27+**: Methods may declare type parameters; function type inference applies in all assignment contexts
 
 ## When to Use Generics
 
@@ -182,34 +183,33 @@ func Process[T any](v T) {
 
 But if you're doing type switches on a generic, you probably shouldn't be using generics.
 
-### Mistake 3: Methods Cannot Have Type Parameters
+### Mistake 3: Generic Methods Require Go 1.27+
 
-Go does not allow type parameters on methods. Only types and functions can be generic.
+Before Go 1.27, methods cannot declare their own type parameters. Use a top-level generic function or put the type parameter on the receiver type:
 
-Bad:
-```go
-type Store struct{}
-
-func (s *Store) Get[T any](key string) (T, error) { // compile error
-    // ...
-}
-```
-
-Good — use a top-level function:
 ```go
 func Get[T any](s *Store, key string) (T, error) {
     // ...
 }
-```
 
-Good — make the type generic:
-```go
-type Store[T any] struct{}
+type TypedStore[T any] struct{}
 
-func (s *Store[T]) Get(key string) (T, error) {
+func (s *TypedStore[T]) Get(key string) (T, error) {
     // ...
 }
 ```
+
+In Go 1.27+, a concrete type's method may declare type parameters:
+
+```go
+type Store struct{}
+
+func (s *Store) Get[T any](key string) (T, error) {
+    // ...
+}
+```
+
+Use this when the operation belongs naturally to the receiver. Interface methods may not declare type parameters, and generic methods cannot implement interface methods.
 
 ### Mistake 4: Pointer Receiver Constraint
 

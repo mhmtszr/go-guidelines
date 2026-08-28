@@ -1,8 +1,8 @@
 {
   "name": "go-guidelines",
   "displayName": "Go Guidelines",
-  "description": "Make your AI code agent write production-grade Go instead of tutorial-grade Go. A plugin for Cursor & Claude Code with version-aware guidelines (Go 1.0–1.26) covering modern syntax, performance tuning, error handling, concurrency patterns, testing, and graceful shutdown.",
-  "version": "1.1.0",
+  "description": "Make your AI code agent write production-grade Go instead of tutorial-grade Go. A plugin for Cursor & Claude Code with version-aware guidelines (Go 1.0–1.27) covering modern syntax, performance tuning, error handling, concurrency patterns, testing, and graceful shutdown.",
+  "version": "1.2.0",
   "author": {
     "name": "Mehmet Sezer",
     "email": "m.szr98@gmail.com"

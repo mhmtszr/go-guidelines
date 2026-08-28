@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "Marketplace for Go guidelines coding-agent plugin",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "plugins": [
     {
       "name": "go-guidelines",
       "description": "Enhances code agents with Go best practices covering performance, modern syntax, generics, patterns, testing, error handling, and concurrency.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": {
         "name": "Mehmet Sezer",
         "email": "m.szr98@gmail.com"

@@ -50,7 +50,7 @@ To pin a specific version:
 
 ```json
 {
-  "plugin": ["go-guidelines@git+https://github.com/mhmtszr/go-guidelines.git#v1.1.0"]
+  "plugin": ["go-guidelines@git+https://github.com/mhmtszr/go-guidelines.git#v1.2.0"]
 }
 ```
 

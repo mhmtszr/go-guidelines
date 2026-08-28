@@ -12,7 +12,7 @@ Install Go Guidelines for your agent: [Claude Code](#claude-code), [Codex CLI](#
 
 All coding agents tend to generate outdated and suboptimal Go. Key reasons:
 
-1. **Training data lag.** Models don't know about features added after their training cutoff. They can't use `wg.Go()` (1.25), `new(val)` (1.26), or `errors.AsType[T]` (1.26) if they've never seen them.
+1. **Training data lag.** Models don't know about features added after their training cutoff. They can't use `wg.Go()` (1.25), `new(val)` (1.26), or generic methods (1.27) if they've never seen them.
 
 2. **Frequency bias.** Even for features the model knows, it picks older patterns. There's more `for i := 0; i < n; i++` in the training data than `for i := range n`, so that's what comes out.
 
@@ -117,7 +117,7 @@ The Pi package exposes the bundled `skills/` directory through Pi's native skill
 
 | | |
 |---|---|
-| **Modern Syntax** | Version-aware features from Go 1.0 through 1.26 — the agent detects your `go.mod` version and stays within bounds |
+| **Modern Syntax** | Version-aware features from Go 1.0 through 1.27 — the agent detects your `go.mod` version and stays within bounds |
 | **Performance** | Struct alignment, sync.Pool, pre-allocation, buffered channels, pointer semantics, strings.Builder, escape analysis |
 | **Patterns** | Naming conventions, context-first parameters, functional options, graceful shutdown, health checks, consumer-side interfaces, guard clauses, defer pitfalls, HTTP client best practices, io.Reader, resource closing |
 | **Concurrency** | Goroutine leak prevention, bounded concurrency with errgroup, channel safety, select randomness, nil channels, notification channels, mutex pitfalls, false sharing |
@@ -135,7 +135,7 @@ The Pi package exposes the bundled `skills/` directory through Pi's native skill
 skills/go-guidelines/
 ├── SKILL.md                          # Entry point — version detection + reference routing
 └── references/
-    ├── modern-syntax.md              # Go version-specific syntax (1.0 → 1.26) + go fix
+    ├── modern-syntax.md              # Go version-specific syntax (1.0 → 1.27) + go fix
     ├── performance.md                # Struct layout, pre-allocation, sync.Pool, escape analysis
     ├── concurrency.md                # errgroup, goroutine leaks, select, false sharing
     ├── patterns.md                   # Naming, interfaces, shutdown, health checks, io.Reader

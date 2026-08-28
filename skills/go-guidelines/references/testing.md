@@ -359,22 +359,27 @@ go test -v -artifacts -outputdir=/tmp/test-output ./...
 
 Without `-artifacts`: uses a temp directory that is cleaned up after the test. Each subtest gets its own artifact directory.
 
-## Goroutine Leak Profile (Go 1.26+, Experimental)
+## Goroutine Leak Profile
 
-A new `goroutineleak` pprof profile detects goroutines blocked on unreachable sync primitives (channels, mutexes, conds). Enable with `GOEXPERIMENT=goroutineleakprofile`.
+The `goroutineleak` pprof profile detects goroutines blocked on unreachable sync primitives (channels, mutexes, conds).
+
+- **Go 1.26:** experimental; enable it with `GOEXPERIMENT=goroutineleakprofile`.
+- **Go 1.27+:** generally available with no experiment flag.
 
 ```go
 func TestLeak(t *testing.T) {
     prof := pprof.Lookup("goroutineleak")
     if prof == nil {
-        t.Skip("build with GOEXPERIMENT=goroutineleakprofile")
+        t.Skip("goroutine leak profile is unavailable")
     }
     // ... run code that may leak ...
-    prof.WriteTo(os.Stdout, 2)
+    if err := prof.WriteTo(os.Stdout, 2); err != nil {
+        t.Fatal(err)
+    }
 }
 ```
 
-Also available as HTTP endpoint at `/debug/pprof/goroutineleak`.
+The profile is also available at `/debug/pprof/goroutineleak`. It detects only leaks whose blocking primitive is unreachable from runnable goroutines; continue using cancellation-aware tests and tools such as `goleak`.
 
 ## testing/synctest (Go 1.25+)
 
@@ -392,6 +397,42 @@ func TestWorker(t *testing.T) {
         synctest.Wait() // wait for all goroutines in the bubble to block
 
         // assert results...
+    })
+}
+```
+
+### synctest.Sleep (Go 1.27+)
+
+Use `synctest.Sleep` when a test must both advance fake time and wait for the other goroutines in the bubble to block:
+
+```go
+func TestRetry(t *testing.T) {
+    synctest.Test(t, func(t *testing.T) {
+        go retryUntilReady(t.Context())
+
+        synctest.Sleep(time.Second)
+        // Fake time advanced and the retry goroutine reached a blocked state.
+    })
+}
+```
+
+### In-Memory HTTP Test Servers (Go 1.27+)
+
+Use `httptest.NewTestServer` for HTTP tests inside a `synctest` bubble. It uses an in-memory fake network, unlike the real TCP listener used by the older constructors.
+
+```go
+func TestClient(t *testing.T) {
+    synctest.Test(t, func(t *testing.T) {
+        server := httptest.NewTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            w.WriteHeader(http.StatusNoContent)
+        }))
+        defer server.Close()
+
+        resp, err := server.Client().Get(server.URL)
+        if err != nil {
+            t.Fatal(err)
+        }
+        defer resp.Body.Close()
     })
 }
 ```

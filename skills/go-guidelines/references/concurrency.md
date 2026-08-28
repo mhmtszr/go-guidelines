@@ -678,12 +678,19 @@ go func() {
 
 Use [goleak](https://github.com/uber-go/goleak) in tests — see [testing reference](testing.md) for setup.
 
-### Goroutine Leak Profile (Go 1.26+, Experimental)
+### Goroutine Leak Profile
 
-Build with `GOEXPERIMENT=goroutineleakprofile` to enable the `goroutineleak` pprof profile. It uses the GC's marking phase to detect goroutines blocked on unreachable sync primitives (channels, mutexes, conds).
+- **Go 1.26:** experimental; build with `GOEXPERIMENT=goroutineleakprofile`.
+- **Go 1.27+:** generally available; no experiment flag is needed.
+
+The `goroutineleak` pprof profile uses the GC's marking phase to detect goroutines blocked on unreachable sync primitives (channels, mutexes, conds). It cannot detect every leak, particularly when the blocking primitive remains reachable from globals or runnable goroutines.
 
 ```bash
+# Go 1.26 only:
 GOEXPERIMENT=goroutineleakprofile go test -v ./...
+
+# Go 1.27+:
+go test -v ./...
 ```
 
-Also available as `/debug/pprof/goroutineleak` for runtime detection in staging environments. See [testing reference](testing.md) for test usage.
+It is also available as `/debug/pprof/goroutineleak` for runtime detection in staging environments. See [testing reference](testing.md) for test usage.

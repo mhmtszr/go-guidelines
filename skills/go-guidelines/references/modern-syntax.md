@@ -381,3 +381,125 @@ Custom API migration with `//go:fix inline`:
 //go:fix inline
 func OldAPI(x int) int { return NewAPI(x, defaultOpts) }
 ```
+
+## Go 1.27+
+
+- Generic methods may declare their own type parameters. Interface methods still cannot be generic, and a generic method cannot implement a non-generic interface method.
+- Embedded fields may be keyed directly in struct literals.
+- Generic function type inference works in every assignment context, including composite literals, conversions, and channel sends.
+- `strings.CutLast` / `bytes.CutLast` replace `LastIndex` followed by manual slicing.
+- `net/url.URL.Clone` / `url.Values.Clone` create deep copies.
+- `testing/synctest.Sleep` advances fake time and waits for other goroutines in the bubble to block.
+- `encoding/json/v2` offers stricter defaults and configurable marshaling; `encoding/json/jsontext` supports token/value-level streaming.
+- The standard `uuid` package generates and parses UUIDs; prefer it over adding a dependency for basic UUID needs.
+- `go test` runs the `stdversion` vet analyzer by default; do not use standard-library APIs newer than the effective Go version of a file.
+- `go fix` adds the `atomictypes`, `embedlit`, `slicesbackward`, and `unsafefuncs` modernizers.
+
+### Generic Methods
+
+Use generic methods when an operation naturally belongs to a concrete type. Do not introduce a receiver solely to avoid a package-level generic function.
+
+```go
+type Store struct {
+    values map[string]any
+}
+
+func (s *Store) Get[T any](key string) (T, bool) {
+    value, ok := s.values[key].(T)
+    return value, ok
+}
+```
+
+Interface methods still cannot declare type parameters:
+
+```go
+// Invalid even in Go 1.27:
+type Store interface {
+    Get[T any](key string) (T, bool)
+}
+```
+
+### Embedded Fields in Struct Literals
+
+```go
+type Habitat struct {
+    Burrow string
+}
+
+type Gopher struct {
+    Name string
+    Habitat
+}
+
+g := Gopher{
+    Name:   "Gopher",
+    Burrow: "Burrow #42",
+}
+```
+
+Prefer the direct field selector when it makes literals shorter and remains unambiguous.
+
+### Generalized Function Type Inference
+
+```go
+func Format[T any](v T) string { return fmt.Sprint(v) }
+
+type IntFormatter func(int) string
+
+formatters := []IntFormatter{Format}
+formatter := IntFormatter(Format)
+ch := make(chan IntFormatter, 1)
+ch <- Format
+```
+
+The target function type supplies the type argument, so explicit instantiation such as `Format[int]` is unnecessary in these contexts.
+
+### JSON v2
+
+Use `encoding/json/v2` for new Go 1.27+ code when its stricter defaults are appropriate. It rejects invalid UTF-8 and duplicate object member names by default. Migration from `encoding/json` v1 requires compatibility testing; do not mechanically change imports because defaults and error text differ.
+
+```go
+import json "encoding/json/v2"
+
+if err := json.UnmarshalRead(r.Body, &request); err != nil {
+    return err
+}
+if err := json.MarshalWrite(w, response); err != nil {
+    return err
+}
+```
+
+Use `encoding/json/jsontext.Decoder` and `Encoder` when processing JSON as a validated stream of tokens or values.
+
+### Standard UUIDs
+
+```go
+id := uuid.New() // currently equivalent to uuid.NewV4()
+
+parsed, err := uuid.Parse(input)
+if err != nil {
+    return err
+}
+```
+
+Use `uuid.NewV7()` when time-ordered UUIDs are an explicit storage or indexing requirement; otherwise prefer `uuid.New()`.
+
+### CutLast
+
+```go
+name, ext, found := strings.CutLast(path, ".")
+if found {
+    // use name and ext
+}
+```
+
+Use `bytes.CutLast` for byte slices.
+
+### Deep-Copy URLs
+
+```go
+clonedURL := originalURL.Clone()
+clonedQuery := originalURL.Query().Clone()
+```
+
+Prefer these methods over hand-copying `url.URL` or `url.Values`, especially before mutating query parameters.
