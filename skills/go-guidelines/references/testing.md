@@ -372,14 +372,15 @@ func TestLeak(t *testing.T) {
     if prof == nil {
         t.Skip("goroutine leak profile is unavailable")
     }
-    // ... run code that may leak ...
+    // ... run code that may leak and wait for it to settle ...
+    runtime.GC() // detection uses a GC reachability pass
     if err := prof.WriteTo(os.Stdout, 2); err != nil {
         t.Fatal(err)
     }
 }
 ```
 
-The profile is also available at `/debug/pprof/goroutineleak`. It detects only leaks whose blocking primitive is unreachable from runnable goroutines; continue using cancellation-aware tests and tools such as `goleak`.
+The profile is also available at `/debug/pprof/goroutineleak`. It detects only leaks whose blocking primitive is unreachable from runnable goroutines; continue using cancellation-aware tests and tools such as `goleak`. This example dumps diagnostics, not a leak assertion: writing a profile does not fail the test when leaks exist. A zero count is not proof of leak freedom, and the profile is process-wide, so unrelated goroutines can affect it.
 
 ## testing/synctest (Go 1.25+)
 
@@ -406,33 +407,52 @@ func TestWorker(t *testing.T) {
 Use `synctest.Sleep` when a test must both advance fake time and wait for the other goroutines in the bubble to block:
 
 ```go
-func TestRetry(t *testing.T) {
+func TestTimer(t *testing.T) {
     synctest.Test(t, func(t *testing.T) {
-        go retryUntilReady(t.Context())
+        fired := false
+        time.AfterFunc(time.Second, func() { fired = true })
 
         synctest.Sleep(time.Second)
-        // Fake time advanced and the retry goroutine reached a blocked state.
+        if !fired {
+            t.Fatal("timer did not fire")
+        }
     })
 }
 ```
+
+It is equivalent to `time.Sleep(d)` followed by `synctest.Wait()`. The wait synchronizes with other goroutines, making the read of `fired` safe; sleeping alone does not. Use it only inside a `synctest.Test` bubble. Fake time advances when all goroutines are durably blocked; it cannot make a CPU-bound busy loop or real network I/O deterministic.
 
 ### In-Memory HTTP Test Servers (Go 1.27+)
 
 Use `httptest.NewTestServer` for HTTP tests inside a `synctest` bubble. It uses an in-memory fake network, unlike the real TCP listener used by the older constructors.
 
 ```go
-func TestClient(t *testing.T) {
+func TestDelayedResponse(t *testing.T) {
     synctest.Test(t, func(t *testing.T) {
         server := httptest.NewTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            time.Sleep(2 * time.Second) // fake time, not a wall-clock delay
             w.WriteHeader(http.StatusNoContent)
         }))
+        client := server.Client() // starts the server and initializes server.URL
+        // Close before leaving the bubble; NewTestServer also registers cleanup.
         defer server.Close()
 
-        resp, err := server.Client().Get(server.URL)
+        start := time.Now()
+        resp, err := client.Get(server.URL)
         if err != nil {
             t.Fatal(err)
         }
         defer resp.Body.Close()
+        if resp.StatusCode != http.StatusNoContent {
+            t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusNoContent)
+        }
+        if elapsed := time.Since(start); elapsed != 2*time.Second {
+            t.Fatalf("elapsed = %v, want 2s", elapsed)
+        }
     })
 }
 ```
+
+Always use `server.Client()` for the in-memory network; `http.DefaultClient` cannot reach it. The provided client routes **all** destination hosts to the test server, so test URL construction separately if the real hostname matters. Configure the server before the first `Client()` call. Calling `Start` or `StartTLS` opts into a real loopback listener instead. Prefer a loopback server when testing actual socket behavior rather than handler/client logic.
+
+Sources: [synctest.Sleep](https://pkg.go.dev/testing/synctest#Sleep), [httptest.Server](https://pkg.go.dev/net/http/httptest#Server).

@@ -681,7 +681,7 @@ Use [goleak](https://github.com/uber-go/goleak) in tests — see [testing refere
 ### Goroutine Leak Profile
 
 - **Go 1.26:** experimental; build with `GOEXPERIMENT=goroutineleakprofile`.
-- **Go 1.27+:** generally available; no experiment flag is needed.
+- **Go 1.27+:** generally available; no experiment flag is needed. Remove `GOEXPERIMENT=goroutineleakprofile` from build scripts: the experiment setting was deleted.
 
 The `goroutineleak` pprof profile uses the GC's marking phase to detect goroutines blocked on unreachable sync primitives (channels, mutexes, conds). It cannot detect every leak, particularly when the blocking primitive remains reachable from globals or runnable goroutines.
 
@@ -693,4 +693,20 @@ GOEXPERIMENT=goroutineleakprofile go test -v ./...
 go test -v ./...
 ```
 
-It is also available as `/debug/pprof/goroutineleak` for runtime detection in staging environments. See [testing reference](testing.md) for test usage.
+It is also available as `/debug/pprof/goroutineleak` for runtime detection in staging environments. Keep pprof on a restricted diagnostics listener, not a public application endpoint. See [testing reference](testing.md) for test usage.
+
+### Goroutine Labels in Tracebacks (Go 1.27+)
+
+For modules with a `go 1.27` or later directive, tracebacks include `runtime/pprof` goroutine labels by default. Label coarse operations to connect diagnostics to work being performed:
+
+```go
+pprof.Do(ctx, pprof.Labels("operation", "refresh-cache"), func(ctx context.Context) {
+    refreshCache(ctx)
+})
+```
+
+`pprof.Do` labels the current goroutine; it does not start a goroutine. New goroutines created within it inherit the labels, but already-running worker-pool goroutines do not automatically acquire a submitted context's labels. Apply `pprof.Do` around work in the worker itself when needed.
+
+Keep label values low-cardinality and non-sensitive: avoid tokens, personal data, and per-request IDs. Labels may now appear in crash logs, not just profiles. `GODEBUG=tracebacklabels=0` disables traceback label display but does not remove labels from profiles.
+
+Source: [Go 1.27 runtime changes](https://go.dev/doc/go1.27#runtime).

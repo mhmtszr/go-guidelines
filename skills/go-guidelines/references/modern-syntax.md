@@ -437,7 +437,7 @@ g := Gopher{
 }
 ```
 
-Prefer the direct field selector when it makes literals shorter and remains unambiguous.
+Prefer the promoted field name when it makes literals shorter and remains unambiguous. When two embedded structs promote the same name, keep nested literals such as `Habitat: Habitat{Burrow: "home"}` to disambiguate. Do not initialize the same promoted field twice.
 
 ### Generalized Function Type Inference
 
@@ -452,7 +452,7 @@ ch := make(chan IntFormatter, 1)
 ch <- Format
 ```
 
-The target function type supplies the type argument, so explicit instantiation such as `Format[int]` is unnecessary in these contexts.
+The target function type supplies the type argument, so explicit instantiation such as `Format[int]` is unnecessary in these contexts. Inference still needs a concrete target: `formatter := Format` has no function type to infer from and remains invalid. Use `formatter := Format[int]` instead.
 
 ### JSON v2
 
@@ -471,6 +471,33 @@ if err := json.MarshalWrite(w, response); err != nil {
 
 Use `encoding/json/jsontext.Decoder` and `Encoder` when processing JSON as a validated stream of tokens or values.
 
+#### Migration Is a Wire-Contract Change
+
+Go 1.27 backs the existing `encoding/json` API with the v2 implementation while preserving v1 semantics. Updating the toolchain is not the same as migrating imports to `encoding/json/v2`; v1 remains supported. Test behavior and error types rather than exact error strings, which may change.
+
+| Behavior | v1 default | v2 default |
+|---|---|---|
+| Duplicate object names | Accepted | Rejected |
+| Invalid UTF-8 | Replaced with U+FFFD | Rejected |
+| Struct field matching | Case-insensitive fallback | Case-sensitive |
+| Nil slices / maps | `null` | `[]` / `{}` |
+| Map member order | Sorted keys | Unspecified |
+| `omitempty` | Empty Go values | Empty JSON values; `0` and `false` are retained |
+
+Use `omitzero` when omission should follow Go zero-value semantics. Unknown members are still ignored by default; opt into `json.RejectUnknownMembers(true)` when the API contract requires rejection. Test existing payloads, custom marshalers, tags, and nil collections before migrating. For older experimental v2 examples, re-check the API: `inline` was renamed to `embed`, and `format` and `unknown` tags were removed in Go 1.27.
+
+```go
+// For repeatable golden files, opt into deterministic output.
+stock := map[string]int{"zebra": 10, "apple": 20}
+data, err := json.Marshal(stock, json.Deterministic(true))
+if err != nil {
+    return err
+}
+// data contains {"apple":20,"zebra":10}
+```
+
+`Deterministic(true)` is not a canonical JSON protocol for cryptographic signatures. Use the canonicalization scheme required by that protocol. Do not promise a fixed speedup from migrating; benchmark representative payloads.
+
 ### Standard UUIDs
 
 ```go
@@ -482,18 +509,20 @@ if err != nil {
 }
 ```
 
-Use `uuid.NewV7()` when time-ordered UUIDs are an explicit storage or indexing requirement; otherwise prefer `uuid.New()`.
+Use `uuid.NewV7()` when time-ordered UUIDs are an explicit storage or indexing requirement; otherwise prefer `uuid.New()`. V7 exposes a timestamp and is not a substitute for an authorization token. Its ordering can be disrupted by a backwards system clock; benchmark database locality rather than assuming an indexing speedup. Use `Parse` for external input and reserve `MustParse` for trusted constants.
 
 ### CutLast
 
 ```go
-name, ext, found := strings.CutLast(path, ".")
-if found {
-    // use name and ext
+prefix, value, found := strings.CutLast("service.region.instance", ".")
+if !found {
+    // No separator: prefix is the entire input and value is empty.
+    return errors.New("missing separator")
 }
+// prefix == "service.region", value == "instance"
 ```
 
-Use `bytes.CutLast` for byte slices.
+Unlike `Cut`, this splits at the last occurrence. Check `found`: an empty suffix can also mean a separator was present at the end. Use `bytes.CutLast` for byte slices; the returned slices alias the input, so clone them if independent ownership is required. For filesystem paths, use `filepath` operations instead of assuming that a dot or slash is the correct separator.
 
 ### Deep-Copy URLs
 
@@ -503,3 +532,37 @@ clonedQuery := originalURL.Query().Clone()
 ```
 
 Prefer these methods over hand-copying `url.URL` or `url.Values`, especially before mutating query parameters.
+
+### Explicit Integer Division Rounding
+
+Use `math/big.Int.Divide` when rounding is part of the domain rule, rather than patching the result of `Quo` with ad-hoc arithmetic.
+
+```go
+x, y := big.NewInt(-7), big.NewInt(2)
+var quotient, remainder big.Int
+quotient.Divide(x, y, &remainder, big.Floor)
+// quotient == -4, remainder == 1: x == y*quotient + remainder
+```
+
+| Mode | Quotient of -7 / 2 | Remainder |
+|---|---|---|
+| `big.Trunc` | -3 | -1 |
+| `big.Floor` | -4 | 1 |
+| `big.Ceil` | -3 | -1 |
+| `big.Round` | -4 | 1 |
+
+`Round` rounds to the nearest integer with ties to even (`-5 / 2` rounds to `-2`, not `-3`). A remainder may be negative, including for positive operands with `Ceil`. Validate a user-supplied divisor before calling: division by zero panics. Use separate result values when both quotient and remainder are needed.
+
+### Review go fix Modernizers
+
+```bash
+go fix -diff ./...          # preview before changing files
+go fix -atomictypes ./...  # migrate eligible atomic operations
+go fix -embedlit ./...     # simplify embedded-field literals (Go 1.27+)
+```
+
+The Go 1.27 tool adds `atomictypes`, `embedlit`, `slicesbackward`, and `unsafefuncs`. The analyzer version is not the minimum version of every rewrite: typed atomics require Go 1.19+, `slices.Backward` requires Go 1.23+, and embedded-field literal selectors require Go 1.27+. Keep the module's Go directive accurate, review diffs, and rerun tests. Typed atomic values must not be copied after first use; `unsafe.Add` does not make invalid pointer arithmetic safe.
+
+The old `waitgroup` analyzer is now named `waitgroupgo`, and `fmtappendf` was removed. Update scripts that select these analyzers explicitly.
+
+Sources: [Go 1.27 release notes](https://go.dev/doc/go1.27), [JSON migration](https://pkg.go.dev/encoding/json#hdr-Migrating_to_v2), [Int.Divide](https://pkg.go.dev/math/big#Int.Divide).

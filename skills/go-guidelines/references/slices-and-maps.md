@@ -278,3 +278,29 @@ for _, k := range keys {
     fmt.Printf("%s=%d\n", k, m[k])
 }
 ```
+
+## Custom Hash Equality (Go 1.27+)
+
+`hash/maphash.Hasher[T]` couples hashing and equality for custom hash-based containers. It does **not** change the equality rules of built-in `map[K]V`. For simple case-normalized string keys, prefer normalizing at the boundary and using an ordinary map; use a custom hasher when the container requires it.
+
+```go
+type lowerCaseHasher struct{}
+
+func (lowerCaseHasher) Hash(h *maphash.Hash, s string) {
+    h.WriteString(strings.ToLower(s))
+}
+
+func (lowerCaseHasher) Equal(x, y string) bool {
+    return strings.ToLower(x) == strings.ToLower(y)
+}
+
+var _ maphash.Hasher[string] = lowerCaseHasher{}
+```
+
+- Equal values must hash identically with the **same seed**. Use the same canonical representation in both methods; `strings.EqualFold` is not consistent with `strings.ToLower` for every Unicode string.
+- Hash and equality must be logically stateless. Do not mutate stored keys in ways that change either result.
+- Equal hashes do not prove equality: a container must still handle collisions using `Equal`.
+- Use a random seed per container and reuse it across operations; do not generate a new seed for each lookup. Hashes are not stable persistent IDs or cryptographic digests. Do not share a mutable `maphash.Hash` across goroutines without synchronization.
+- `maphash.ComparableHasher[T]` implements ordinary `==` equality. As with map keys, `T = any` can still panic when a value contains a non-comparable type.
+
+See the [Hasher contract](https://pkg.go.dev/hash/maphash#Hasher).
